@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -75,5 +76,33 @@ class MemberControllerTest {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(body))
 				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void 본문_JSON이_깨지면_400을_반환한다() throws Exception {
+		// given — 파싱 불가능한 JSON
+		String malformed = "{ \"email\": ";
+
+		// when & then
+		mockMvc.perform(post("/api/v1/members")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(malformed))
+				.andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void 데이터_제약_위반이면_409를_반환한다() throws Exception {
+		// given
+		given(memberService.signUp(any()))
+				.willThrow(new DataIntegrityViolationException("duplicate"));
+		String body = """
+				{"email":"buyer@example.com","password":"P@ssw0rd!","name":"김구매"}
+				""";
+
+		// when & then
+		mockMvc.perform(post("/api/v1/members")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(body))
+				.andExpect(status().isConflict());
 	}
 }
