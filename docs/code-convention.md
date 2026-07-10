@@ -7,9 +7,21 @@
 
 도메인 단위로 나누고, 공통 관심사는 `global`에 모은다.
 
+- 베이스 패키지는 `com.example.projectwork`.
 - **global 패키지**: 공통 config, response, exception, security
-- **도메인 패키지**: `member`, `coffee`, `order`
-- 각 도메인은 자신의 Controller, Service, Repository, Entity, DTO, Exception을 관리한다.
+- **domain 패키지**: 도메인은 `domain` 아래에 둔다 — `domain.member`, `domain.coffee`, `domain.order`.
+- 각 도메인은 자신의 controller, service, repository, entity, dto, exception을 관리한다.
+
+```
+com.example.projectwork
+├── global
+│   ├── response   (ApiResponse)
+│   └── exception  (ErrorCode, ServiceException, GlobalExceptionHandler)
+└── domain
+    ├── member  (controller / service / repository / entity / dto / exception)
+    ├── coffee
+    └── order
+```
 
 ## 클래스 네이밍
 

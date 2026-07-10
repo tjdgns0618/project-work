@@ -37,8 +37,9 @@ com.example.projectwork
 │   ├── response   → ApiResponse<T> { message, data }
 │   ├── exception  → ServiceException, GlobalExceptionHandler, 공통 ErrorCode
 │   └── config     → (필요 시) RedisConfig, KafkaConfig
-└── {member|coffee|order}
-    ├── controller / service / repository / entity / dto / exception
+└── domain
+    └── {member|coffee|order}
+        ├── controller / service / repository / entity / dto / exception
 ```
 
 global의 ApiResponse·예외 처리가 아직 없으면 첫 구현 때 함께 만든다. 이미 있으면 재사용한다 — 중복 생성 금지.
