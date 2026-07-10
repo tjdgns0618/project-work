@@ -14,6 +14,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.example.projectwork.domain.coffee.dto.CoffeeResponse;
+import com.example.projectwork.domain.coffee.dto.PopularMenuResponse;
 import com.example.projectwork.domain.coffee.service.CoffeeService;
 
 @WebMvcTest(CoffeeController.class)
@@ -50,5 +51,21 @@ class CoffeeControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data").isArray())
 				.andExpect(jsonPath("$.data").isEmpty());
+	}
+
+	@Test
+	void 인기_메뉴_조회는_200과_순위_목록을_반환한다() throws Exception {
+		// given
+		given(coffeeService.getPopularMenus()).willReturn(List.of(
+				new PopularMenuResponse(1, 2L, "카페라떼", 4500, 120),
+				new PopularMenuResponse(2, 1L, "아메리카노", 4000, 98)));
+
+		// when & then
+		mockMvc.perform(get("/api/v1/coffees/popular"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.message").value("인기 메뉴 조회가 완료되었습니다."))
+				.andExpect(jsonPath("$.data[0].rank").value(1))
+				.andExpect(jsonPath("$.data[0].id").value(2))
+				.andExpect(jsonPath("$.data[0].orderCount").value(120));
 	}
 }
