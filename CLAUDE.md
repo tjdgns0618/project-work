@@ -56,6 +56,11 @@
 
 **M5. Spring Boot 3 관성** — Boot 3 기준 아티팩트명·패턴을 쓴다.
 → *규칙*: 이 프로젝트는 **Boot 4.1.0**이다. build.gradle을 먼저 읽어라. starter 이름이 다르다(예: `spring-boot-starter-webmvc`). 의존성을 추가할 때 Boot 3 이름을 복붙하지 마라.
+→ *이 저장소에서 실제로 걸린 Boot 4 차이(확인됨)*:
+  - **Kafka 자동설정 분리**: 라이브러리 `org.springframework.kafka:spring-kafka`만으론 `KafkaTemplate` 빈이 자동 생성되지 않는다. **`spring-boot-starter-kafka`** 를 써야 자동설정(`spring-boot-kafka`)이 딸려온다.
+  - **Jackson 3 전환**: Boot 4는 Jackson 3(`tools.jackson.*`)을 쓴다. Jackson 2 databind(`com.fasterxml.jackson.databind.*`)는 없다. spring-kafka의 `JsonSerializer`는 Jackson 2 의존이라 `NoClassDefFoundError`로 깨진다 → **StringSerializer + `tools.jackson.databind.ObjectMapper`로 직접 직렬화**한다. `ObjectMapper` import도 `tools.jackson.databind`.
+  - **테스트 슬라이스 이동**: `@WebMvcTest`는 `org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest`. 목 빈은 `@MockitoBean`(`org.springframework.test.context.bean.override.mockito`).
+  - *원칙*: 아티팩트·패키지명은 추측하지 말고 gradle 해석/클래스패스(jar `unzip -l`)로 실제 위치를 확인한다.
 
 **M6. `ORDER` 예약어 충돌** — `@Entity class Order`를 테이블명 지정 없이 만든다. ORDER는 MySQL 예약어라 DDL이 깨진다.
 → *규칙*: 주문 엔티티는 반드시 `@Table(name = "orders")`를 붙인다.
