@@ -6,6 +6,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.projectwork.domain.member.dto.MemberCreateRequest;
 import com.example.projectwork.domain.member.dto.MemberResponse;
+import com.example.projectwork.domain.member.dto.PointChargeResponse;
 import com.example.projectwork.domain.member.entity.Member;
 import com.example.projectwork.domain.member.exception.MemberErrorCode;
 import com.example.projectwork.domain.member.repository.MemberRepository;
@@ -29,5 +30,13 @@ public class MemberService {
 		Member member = memberRepository.save(
 				Member.create(request.email(), passwordHash, request.name()));
 		return MemberResponse.from(member);
+	}
+
+	@Transactional
+	public PointChargeResponse chargePoint(Long memberId, long amount) {
+		Member member = memberRepository.findById(memberId)
+				.orElseThrow(() -> new ServiceException(MemberErrorCode.MEMBER_NOT_FOUND));
+		member.chargePoint(amount);
+		return PointChargeResponse.from(member);
 	}
 }
