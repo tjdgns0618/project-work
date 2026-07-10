@@ -87,7 +87,7 @@
 
 ### 코드 (구현 단계)
 - [ ] `./gradlew compileJava` 통과. `./gradlew test` 통과 — 실패하면 실패 출력과 함께 보고.
-- [ ] 패키지: `global` + 도메인(`member`/`coffee`/`order`), 각 도메인에 controller/service/repository/entity/dto/exception.
+- [ ] 패키지: `global` + `domain.{member,coffee,order}`, 각 도메인에 controller/service/repository/entity/dto/exception.
 - [ ] Entity: `@NoArgsConstructor(PROTECTED)` + `@AllArgsConstructor(PRIVATE)` + 정적 팩토리, `@Setter`·`@Data` 없음.
 - [ ] 주문 엔티티에 `@Table(name = "orders")` 있음 (M6).
 - [ ] 컨트롤러 응답에 Entity 타입이 등장하지 않음. 공통 응답 `{message, data}` 포맷.
