@@ -16,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.example.projectwork.domain.coffee.entity.Coffee;
 import com.example.projectwork.domain.coffee.exception.CoffeeErrorCode;
@@ -48,41 +49,47 @@ class OrderServiceTest {
 	@InjectMocks
 	private OrderService orderService;
 
-	private Member memberWithBalance(long balance) {
+	private Member member(long id) {
 		Member member = Member.create("buyer@example.com", "hash", "김구매");
-		member.chargePoint(balance);
+		ReflectionTestUtils.setField(member, "id", id);
 		return member;
 	}
 
+	private Coffee coffee(long id, int price) {
+		Coffee coffee = Coffee.create("아메리카노", price);
+		ReflectionTestUtils.setField(coffee, "id", id);
+		return coffee;
+	}
+
 	@Test
-	void 주문에_성공하면_잔액이_차감되고_이벤트가_발행된다() {
+	void 주문에_성공하면_포인트가_차감되고_이벤트가_발행되며_잔액을_반환한다() {
 		// given
-		Member member = memberWithBalance(10000L);
-		Coffee coffee = Coffee.create("아메리카노", 4000);
-		given(memberRepository.findById(1L)).willReturn(Optional.of(member));
-		given(coffeeRepository.findById(2L)).willReturn(Optional.of(coffee));
+		given(memberRepository.findById(1L)).willReturn(Optional.of(member(1L)));
+		given(coffeeRepository.findById(2L)).willReturn(Optional.of(coffee(2L, 4000)));
+		given(memberRepository.deductPoint(1L, 4000L)).willReturn(1);
 		given(orderRepository.save(any(Order.class))).willAnswer(inv -> inv.getArgument(0));
+		given(memberRepository.findPointBalance(1L)).willReturn(6000L);
 
 		// when
 		OrderResponse response = orderService.order(new OrderCreateRequest(1L, 2L));
 
 		// then
-		assertThat(member.getPointBalance()).isEqualTo(6000L);
 		assertThat(response.payAmount()).isEqualTo(4000);
 		assertThat(response.pointBalance()).isEqualTo(6000L);
 
 		ArgumentCaptor<OrderCompletedEvent> captor = ArgumentCaptor.forClass(OrderCompletedEvent.class);
 		verify(eventPublisher).publishEvent(captor.capture());
+		assertThat(captor.getValue().memberId()).isEqualTo(1L);
+		assertThat(captor.getValue().coffeeId()).isEqualTo(2L);
 		assertThat(captor.getValue().payAmount()).isEqualTo(4000);
 	}
 
 	@Test
 	void 잔액이_부족하면_예외가_발생하고_저장과_이벤트가_없다() {
-		// given
-		Member member = memberWithBalance(1000L);
-		Coffee coffee = Coffee.create("아메리카노", 4000);
-		given(memberRepository.findById(1L)).willReturn(Optional.of(member));
-		given(coffeeRepository.findById(2L)).willReturn(Optional.of(coffee));
+		// given — 조건부 UPDATE가 0행 (잔액 부족)
+		given(memberRepository.findById(1L)).willReturn(Optional.of(member(1L)));
+		given(coffeeRepository.findById(2L)).willReturn(Optional.of(coffee(2L, 4000)));
+		given(memberRepository.deductPoint(1L, 4000L)).willReturn(0);
 
 		// when & then
 		assertThatThrownBy(() -> orderService.order(new OrderCreateRequest(1L, 2L)))
@@ -106,7 +113,7 @@ class OrderServiceTest {
 	@Test
 	void 존재하지_않는_메뉴이면_예외가_발생한다() {
 		// given
-		given(memberRepository.findById(1L)).willReturn(Optional.of(memberWithBalance(10000L)));
+		given(memberRepository.findById(1L)).willReturn(Optional.of(member(1L)));
 		given(coffeeRepository.findById(2L)).willReturn(Optional.empty());
 
 		// when & then

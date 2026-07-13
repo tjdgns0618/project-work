@@ -7,8 +7,6 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import java.util.Optional;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -69,21 +67,22 @@ class MemberServiceTest {
 
 	@Test
 	void 포인트_충전에_성공하면_갱신된_잔액을_반환한다() {
-		// given
-		Member member = Member.create("buyer@example.com", "hash", "김구매");
-		given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+		// given — 원자 UPDATE가 1행 갱신, 이후 fresh 잔액 조회
+		given(memberRepository.chargePoint(1L, 10000L)).willReturn(1);
+		given(memberRepository.findPointBalance(1L)).willReturn(10000L);
 
 		// when
 		PointChargeResponse response = memberService.chargePoint(1L, 10000L);
 
 		// then
+		assertThat(response.memberId()).isEqualTo(1L);
 		assertThat(response.pointBalance()).isEqualTo(10000L);
 	}
 
 	@Test
 	void 존재하지_않는_회원_충전은_예외가_발생한다() {
-		// given
-		given(memberRepository.findById(1L)).willReturn(Optional.empty());
+		// given — 영향 행 0
+		given(memberRepository.chargePoint(1L, 10000L)).willReturn(0);
 
 		// when & then
 		assertThatThrownBy(() -> memberService.chargePoint(1L, 10000L))

@@ -27,6 +27,7 @@
 - 1원 = 1P.
 - 결제 수단은 포인트 단일. 잔액이 주문 금액보다 적으면 주문 거부(`409`).
 - 환불·포인트 취소는 MVP 미제공.
+- **동시성·일관성**: 잔액 갱신은 read-modify-write 대신 **원자적 조건부 UPDATE**로 한다. 충전은 `UPDATE ... SET point_balance = point_balance + :amt WHERE id = :id`, 차감은 `... - :amt WHERE id = :id AND point_balance >= :amt`(영향 행 0이면 잔액 부족 → `409`). DB 행 레벨 원자 연산이라 애플리케이션 락 없이도 다중 인스턴스·동시 요청에서 lost update·이중 사용(double-spend)·음수 잔액을 방지한다. 응답 잔액은 UPDATE 이후 재조회한 값이다.
 
 ### 주문/결제
 - 결제금액 = 주문 시점 `COFFEE.price`.
