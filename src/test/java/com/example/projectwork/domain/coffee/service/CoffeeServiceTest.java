@@ -1,12 +1,14 @@
 package com.example.projectwork.domain.coffee.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,9 +20,11 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.example.projectwork.domain.coffee.dto.CoffeeResponse;
 import com.example.projectwork.domain.coffee.dto.PopularMenuResponse;
 import com.example.projectwork.domain.coffee.entity.Coffee;
+import com.example.projectwork.domain.coffee.exception.CoffeeErrorCode;
 import com.example.projectwork.domain.coffee.ranking.PopularCount;
 import com.example.projectwork.domain.coffee.ranking.PopularMenuRanking;
 import com.example.projectwork.domain.coffee.repository.CoffeeRepository;
+import com.example.projectwork.global.exception.ServiceException;
 
 @ExtendWith(MockitoExtension.class)
 class CoffeeServiceTest {
@@ -63,6 +67,27 @@ class CoffeeServiceTest {
 
 		// when & then
 		assertThat(coffeeService.getMenus()).isEmpty();
+	}
+
+	@Test
+	void 메뉴를_조회한다() {
+		// given
+		Coffee coffee = coffee(1L, "아메리카노", 4000);
+		given(coffeeRepository.findById(1L)).willReturn(Optional.of(coffee));
+
+		// when & then
+		assertThat(coffeeService.getCoffee(1L)).isSameAs(coffee);
+	}
+
+	@Test
+	void 존재하지_않는_메뉴_조회는_예외가_발생한다() {
+		// given
+		given(coffeeRepository.findById(1L)).willReturn(Optional.empty());
+
+		// when & then
+		assertThatThrownBy(() -> coffeeService.getCoffee(1L))
+				.isInstanceOf(ServiceException.class)
+				.hasMessage(CoffeeErrorCode.COFFEE_NOT_FOUND.getMessage());
 	}
 
 	@Test

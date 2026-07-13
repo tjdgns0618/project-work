@@ -7,6 +7,8 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -67,7 +69,7 @@ class MemberServiceTest {
 
 	@Test
 	void 포인트_충전에_성공하면_갱신된_잔액을_반환한다() {
-		// given — 원자 UPDATE가 1행 갱신, 이후 fresh 잔액 조회
+		// given
 		given(memberRepository.chargePoint(1L, 10000L)).willReturn(1);
 		given(memberRepository.findPointBalance(1L)).willReturn(10000L);
 
@@ -81,12 +83,54 @@ class MemberServiceTest {
 
 	@Test
 	void 존재하지_않는_회원_충전은_예외가_발생한다() {
-		// given — 영향 행 0
+		// given
 		given(memberRepository.chargePoint(1L, 10000L)).willReturn(0);
 
 		// when & then
 		assertThatThrownBy(() -> memberService.chargePoint(1L, 10000L))
 				.isInstanceOf(ServiceException.class)
 				.hasMessage(MemberErrorCode.MEMBER_NOT_FOUND.getMessage());
+	}
+
+	@Test
+	void 회원을_조회한다() {
+		// given
+		Member member = Member.create("buyer@example.com", "hash", "김구매");
+		given(memberRepository.findById(1L)).willReturn(Optional.of(member));
+
+		// when & then
+		assertThat(memberService.getMember(1L)).isSameAs(member);
+	}
+
+	@Test
+	void 존재하지_않는_회원_조회는_예외가_발생한다() {
+		// given
+		given(memberRepository.findById(1L)).willReturn(Optional.empty());
+
+		// when & then
+		assertThatThrownBy(() -> memberService.getMember(1L))
+				.isInstanceOf(ServiceException.class)
+				.hasMessage(MemberErrorCode.MEMBER_NOT_FOUND.getMessage());
+	}
+
+	@Test
+	void 포인트_사용에_성공하면_갱신된_잔액을_반환한다() {
+		// given
+		given(memberRepository.deductPoint(1L, 4000L)).willReturn(1);
+		given(memberRepository.findPointBalance(1L)).willReturn(6000L);
+
+		// when & then
+		assertThat(memberService.usePoint(1L, 4000L)).isEqualTo(6000L);
+	}
+
+	@Test
+	void 잔액이_부족하면_예외가_발생한다() {
+		// given
+		given(memberRepository.deductPoint(1L, 4000L)).willReturn(0);
+
+		// when & then
+		assertThatThrownBy(() -> memberService.usePoint(1L, 4000L))
+				.isInstanceOf(ServiceException.class)
+				.hasMessage(MemberErrorCode.INSUFFICIENT_POINT.getMessage());
 	}
 }
