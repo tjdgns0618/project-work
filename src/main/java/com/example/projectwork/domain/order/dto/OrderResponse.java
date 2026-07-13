@@ -12,13 +12,14 @@ public record OrderResponse(
 		Long pointBalance,
 		LocalDateTime orderedAt
 ) {
-	public static OrderResponse from(Order order) {
+	/** 차감 후 잔액은 원자 UPDATE 뒤 재조회한 값을 넘긴다. */
+	public static OrderResponse from(Order order, long pointBalance) {
 		return new OrderResponse(
 				order.getId(),
 				order.getMember().getId(),
 				order.getCoffee().getId(),
 				order.getPayAmount(),
-				order.getMember().getPointBalance(),
+				pointBalance,
 				order.getOrderedAt());
 	}
 }

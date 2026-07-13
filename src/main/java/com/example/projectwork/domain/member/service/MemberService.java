@@ -32,11 +32,13 @@ public class MemberService {
 		return MemberResponse.from(member);
 	}
 
+	/** 원자적 UPDATE로 충전한다. 동시 충전에도 합계가 정확하다. */
 	@Transactional
 	public PointChargeResponse chargePoint(Long memberId, long amount) {
-		Member member = memberRepository.findById(memberId)
-				.orElseThrow(() -> new ServiceException(MemberErrorCode.MEMBER_NOT_FOUND));
-		member.chargePoint(amount);
-		return PointChargeResponse.from(member);
+		int updated = memberRepository.chargePoint(memberId, amount);
+		if (updated == 0) {
+			throw new ServiceException(MemberErrorCode.MEMBER_NOT_FOUND);
+		}
+		return new PointChargeResponse(memberId, memberRepository.findPointBalance(memberId));
 	}
 }

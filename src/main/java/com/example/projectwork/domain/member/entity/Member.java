@@ -1,8 +1,5 @@
 package com.example.projectwork.domain.member.entity;
 
-import com.example.projectwork.domain.member.exception.MemberErrorCode;
-import com.example.projectwork.global.exception.ServiceException;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -39,16 +36,5 @@ public class Member {
 
 	public static Member create(String email, String passwordHash, String name) {
 		return new Member(null, email, passwordHash, name, 0L);
-	}
-
-	public void chargePoint(long amount) {
-		this.pointBalance += amount;
-	}
-
-	public void usePoint(long amount) {
-		if (this.pointBalance < amount) {
-			throw new ServiceException(MemberErrorCode.INSUFFICIENT_POINT);
-		}
-		this.pointBalance -= amount;
 	}
 }
