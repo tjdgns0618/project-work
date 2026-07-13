@@ -14,9 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.projectwork.domain.coffee.dto.CoffeeResponse;
 import com.example.projectwork.domain.coffee.dto.PopularMenuResponse;
 import com.example.projectwork.domain.coffee.entity.Coffee;
+import com.example.projectwork.domain.coffee.exception.CoffeeErrorCode;
 import com.example.projectwork.domain.coffee.ranking.PopularCount;
 import com.example.projectwork.domain.coffee.ranking.PopularMenuRanking;
 import com.example.projectwork.domain.coffee.repository.CoffeeRepository;
+import com.example.projectwork.global.exception.ServiceException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -35,6 +37,13 @@ public class CoffeeService {
 		return coffeeRepository.findAll().stream()
 				.map(CoffeeResponse::from)
 				.toList();
+	}
+
+	/** 메뉴 조회. 다른 도메인은 이 메서드를 통해서만 커피에 접근한다. */
+	@Transactional(readOnly = true)
+	public Coffee getCoffee(Long coffeeId) {
+		return coffeeRepository.findById(coffeeId)
+				.orElseThrow(() -> new ServiceException(CoffeeErrorCode.COFFEE_NOT_FOUND));
 	}
 
 	@Transactional(readOnly = true)

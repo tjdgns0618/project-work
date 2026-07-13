@@ -17,7 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.example.projectwork.domain.member.exception.MemberErrorCode;
 import com.example.projectwork.domain.order.dto.OrderResponse;
-import com.example.projectwork.domain.order.service.OrderService;
+import com.example.projectwork.domain.order.service.OrderFacade;
 import com.example.projectwork.global.exception.ServiceException;
 
 @WebMvcTest(OrderController.class)
@@ -27,12 +27,12 @@ class OrderControllerTest {
 	private MockMvc mockMvc;
 
 	@MockitoBean
-	private OrderService orderService;
+	private OrderFacade orderFacade;
 
 	@Test
 	void 주문_요청이_성공하면_201과_주문정보를_반환한다() throws Exception {
 		// given
-		given(orderService.order(any())).willReturn(
+		given(orderFacade.placeOrder(any())).willReturn(
 				new OrderResponse(1L, 1L, 2L, 4500, 5500L, LocalDateTime.parse("2026-07-10T14:00:00")));
 		String body = """
 				{"memberId":1,"coffeeId":2}
@@ -66,7 +66,7 @@ class OrderControllerTest {
 	@Test
 	void 잔액이_부족하면_409를_반환한다() throws Exception {
 		// given
-		given(orderService.order(any()))
+		given(orderFacade.placeOrder(any()))
 				.willThrow(new ServiceException(MemberErrorCode.INSUFFICIENT_POINT));
 		String body = """
 				{"memberId":1,"coffeeId":2}
@@ -82,7 +82,7 @@ class OrderControllerTest {
 	@Test
 	void 존재하지_않는_회원이면_404를_반환한다() throws Exception {
 		// given
-		given(orderService.order(any()))
+		given(orderFacade.placeOrder(any()))
 				.willThrow(new ServiceException(MemberErrorCode.MEMBER_NOT_FOUND));
 		String body = """
 				{"memberId":1,"coffeeId":2}

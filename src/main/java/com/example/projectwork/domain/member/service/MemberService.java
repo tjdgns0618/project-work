@@ -41,4 +41,24 @@ public class MemberService {
 		}
 		return new PointChargeResponse(memberId, memberRepository.findPointBalance(memberId));
 	}
+
+	/** 회원 조회. 다른 도메인은 이 메서드를 통해서만 회원에 접근한다. */
+	@Transactional(readOnly = true)
+	public Member getMember(Long memberId) {
+		return memberRepository.findById(memberId)
+				.orElseThrow(() -> new ServiceException(MemberErrorCode.MEMBER_NOT_FOUND));
+	}
+
+	/**
+	 * 포인트를 원자적으로 차감하고 갱신된 잔액을 반환한다. 잔액이 부족하면 예외.
+	 * (회원 존재는 호출 측에서 {@link #getMember}로 보장한다.)
+	 */
+	@Transactional
+	public long usePoint(Long memberId, long amount) {
+		int deducted = memberRepository.deductPoint(memberId, amount);
+		if (deducted == 0) {
+			throw new ServiceException(MemberErrorCode.INSUFFICIENT_POINT);
+		}
+		return memberRepository.findPointBalance(memberId);
+	}
 }
