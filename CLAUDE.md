@@ -19,6 +19,8 @@
 
 `create-issue`(기반 이슈 + API별 1이슈) → `work-issue`(git-flow: develop에서 `feature/#N-슬러그`) → `commit`(`type: 한국어 설명 (#N)`) → `create-pr`(feature→develop, 릴리스는 develop→master) → `review-pr`(PR 코멘트로 게시). 각 단계의 상세 규칙은 `.claude/skills/` 해당 스킬이 SSOT다.
 
+**트러블슈팅 로그.** 하네스/빌드/테스트 실패를 조사할 때는 `troubleshoot` 스킬로 [docs/troubleshooting.md](docs/troubleshooting.md)에 증상·재현 명령·로그 요약·원인·수정·재검증을 append-only로 누적한다. **조사 시작 전 이 파일에서 증상을 grep해 과거 근거를 먼저 확인**하고(재조사 방지) 해결 후 엔트리를 추가한다. 이 로그는 1회성 조사 기록이라 SSOT가 아니며, 반복적으로 재발하는 함정은 §4의 M 목록으로 승격한다(예: M5의 Boot 4 차이).
+
 ## 3. 문서 체계와 권위 (SSOT)
 
 | 파일 | 권위 범위 |
