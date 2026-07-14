@@ -44,6 +44,16 @@ export function summarize(name, data, extra = {}) {
   for (const key of Object.keys(m)) {
     if (key.startsWith('c_')) lines.push(`${key} : ${m[key].values.count}`);
   }
+  // 임계치(thresholds) 결과 — 하나라도 FAIL이면 k6 exit code 1
+  const thLines = [];
+  for (const key of Object.keys(m)) {
+    const th = m[key].thresholds;
+    if (!th) continue;
+    for (const [expr, res] of Object.entries(th)) {
+      thLines.push(`  ${res.ok ? 'PASS ✓' : 'FAIL ✗'}  ${key} ${expr}`);
+    }
+  }
+  if (thLines.length) lines.push(`-- thresholds --`, ...thLines);
   lines.push(`==========================================`, ``);
 
   const out = { stdout: lines.join('\n') };

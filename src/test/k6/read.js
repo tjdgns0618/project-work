@@ -19,6 +19,10 @@ export const options = {
   scenarios: {
     burst: { executor: 'per-vu-iterations', vus: VUS, iterations: ITER, maxDuration: '120s' },
   },
+  thresholds: {
+    http_req_failed: ['rate==0'],        // 조회 실패 0건
+    http_req_duration: ['p(95)<500'],    // 실측 202ms의 ×2.5 (캐시 조회 관례선 500ms)
+  },
 };
 
 export default function () {
