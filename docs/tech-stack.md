@@ -22,6 +22,7 @@
 - **비즈니스 로직** — Service 계층에서 포인트 충전/차감, 주문 검증, 잔액 확인 처리.
 - **트랜잭션 관리** — `@Transactional`로 **주문 생성 → 포인트 차감 → 주문 저장**을 원자적으로 묶는다.
 - **연동 지점** — Spring Data JPA(MySQL), Spring Data Redis(Redis), Spring for Apache Kafka(Kafka Producer)를 각 계층에서 사용.
+- **비밀번호 해싱** — `spring-security-crypto`의 `BCryptPasswordEncoder`로 회원 비밀번호를 해시 저장한다(#3). 보안 스타터 전체는 도입하지 않는다.
 
 ## MySQL
 

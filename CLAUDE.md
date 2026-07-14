@@ -19,6 +19,8 @@
 
 `create-issue`(기반 이슈 + API별 1이슈) → `work-issue`(git-flow: develop에서 `feature/#N-슬러그`) → `commit`(`type: 한국어 설명 (#N)`) → `create-pr`(feature→develop, 릴리스는 develop→master) → `review-pr`(PR 코멘트로 게시). 각 단계의 상세 규칙은 `.claude/skills/` 해당 스킬이 SSOT다.
 
+**트러블슈팅 로그.** 하네스/빌드/테스트 실패를 조사할 때는 `troubleshoot` 스킬로 [docs/troubleshooting.md](docs/troubleshooting.md)에 증상·재현 명령·로그 요약·원인·수정·재검증을 append-only로 누적한다. **조사 시작 전 이 파일에서 증상을 grep해 과거 근거를 먼저 확인**하고(재조사 방지) 해결 후 엔트리를 추가한다. 이 로그는 1회성 조사 기록이라 SSOT가 아니며, 반복적으로 재발하는 함정은 §4의 M 목록으로 승격한다(예: M5의 Boot 4 차이).
+
 ## 3. 문서 체계와 권위 (SSOT)
 
 | 파일 | 권위 범위 |
@@ -56,6 +58,11 @@
 
 **M5. Spring Boot 3 관성** — Boot 3 기준 아티팩트명·패턴을 쓴다.
 → *규칙*: 이 프로젝트는 **Boot 4.1.0**이다. build.gradle을 먼저 읽어라. starter 이름이 다르다(예: `spring-boot-starter-webmvc`). 의존성을 추가할 때 Boot 3 이름을 복붙하지 마라.
+→ *이 저장소에서 실제로 걸린 Boot 4 차이(확인됨)*:
+  - **Kafka 자동설정 분리**: 라이브러리 `org.springframework.kafka:spring-kafka`만으론 `KafkaTemplate` 빈이 자동 생성되지 않는다. **`spring-boot-starter-kafka`** 를 써야 자동설정(`spring-boot-kafka`)이 딸려온다.
+  - **Jackson 3 전환**: Boot 4는 Jackson 3(`tools.jackson.*`)을 쓴다. Jackson 2 databind(`com.fasterxml.jackson.databind.*`)는 없다. spring-kafka의 `JsonSerializer`는 Jackson 2 의존이라 `NoClassDefFoundError`로 깨진다 → **StringSerializer + `tools.jackson.databind.ObjectMapper`로 직접 직렬화**한다. `ObjectMapper` import도 `tools.jackson.databind`.
+  - **테스트 슬라이스 이동**: `@WebMvcTest`는 `org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest`. 목 빈은 `@MockitoBean`(`org.springframework.test.context.bean.override.mockito`).
+  - *원칙*: 아티팩트·패키지명은 추측하지 말고 gradle 해석/클래스패스(jar `unzip -l`)로 실제 위치를 확인한다.
 
 **M6. `ORDER` 예약어 충돌** — `@Entity class Order`를 테이블명 지정 없이 만든다. ORDER는 MySQL 예약어라 DDL이 깨진다.
 → *규칙*: 주문 엔티티는 반드시 `@Table(name = "orders")`를 붙인다.
@@ -87,7 +94,7 @@
 
 ### 코드 (구현 단계)
 - [ ] `./gradlew compileJava` 통과. `./gradlew test` 통과 — 실패하면 실패 출력과 함께 보고.
-- [ ] 패키지: `global` + 도메인(`member`/`coffee`/`order`), 각 도메인에 controller/service/repository/entity/dto/exception.
+- [ ] 패키지: `global` + `domain.{member,coffee,order}`, 각 도메인에 controller/service/repository/entity/dto/exception.
 - [ ] Entity: `@NoArgsConstructor(PROTECTED)` + `@AllArgsConstructor(PRIVATE)` + 정적 팩토리, `@Setter`·`@Data` 없음.
 - [ ] 주문 엔티티에 `@Table(name = "orders")` 있음 (M6).
 - [ ] 컨트롤러 응답에 Entity 타입이 등장하지 않음. 공통 응답 `{message, data}` 포맷.
