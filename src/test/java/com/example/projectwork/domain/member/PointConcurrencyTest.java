@@ -12,6 +12,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import com.example.projectwork.domain.member.entity.Member;
 import com.example.projectwork.domain.member.repository.MemberRepository;
@@ -22,6 +23,7 @@ import com.example.projectwork.domain.order.repository.OrderRepository;
  * (read-modify-write였다면 lost update / 이중 차감으로 실패할 시나리오들)
  */
 @SpringBootTest
+@ActiveProfiles("test")
 class PointConcurrencyTest {
 
 	@Autowired
