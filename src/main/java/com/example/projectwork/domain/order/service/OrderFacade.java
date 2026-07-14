@@ -38,7 +38,7 @@ public class OrderFacade {
 		Order order = orderService.create(member, coffee);
 
 		eventPublisher.publishEvent(new OrderCompletedEvent(
-				member.getId(), coffee.getId(), order.getPayAmount(), order.getOrderedAt()));
+				order.getId(), member.getId(), coffee.getId(), order.getPayAmount(), order.getOrderedAt()));
 
 		return OrderResponse.from(order, pointBalance);
 	}

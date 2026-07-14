@@ -23,6 +23,9 @@ public class OrderCompletedConsumer {
 	@KafkaListener(topics = "order.completed", groupId = "coffee-service")
 	public void consume(String message) {
 		OrderCompletedEvent event = objectMapper.readValue(message, OrderCompletedEvent.class);
-		popularMenuRanking.increment(event.coffeeId(), event.orderedAt().toLocalDate());
+		// Kafka at-least-once 재전달 시 중복 집계 방지: 처음 처리하는 주문일 때만 적재.
+		if (popularMenuRanking.markProcessed(event.orderId())) {
+			popularMenuRanking.increment(event.coffeeId(), event.orderedAt().toLocalDate());
+		}
 	}
 }
