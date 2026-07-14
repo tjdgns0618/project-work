@@ -61,11 +61,22 @@ erDiagram
 
 **Request**
 ```json
-{ "email": "buyer@example.com", "password": "P@ssw0rd!", "name": "김구매" }
+{
+  "email": "buyer@example.com",
+  "password": "P@ssw0rd!",
+  "name": "김구매"
+}
 ```
 **Response `201`**
 ```json
-{ "message": "회원 가입이 완료되었습니다.", "data": { "id": 1, "email": "buyer@example.com", "name": "김구매" } }
+{
+  "message": "회원 가입이 완료되었습니다.",
+  "data": {
+    "id": 1,
+    "email": "buyer@example.com",
+    "name": "김구매"
+  }
+}
 ```
 **실패** — `400` 필수값 누락/형식 오류 · `409` 이메일 중복
 
@@ -87,11 +98,19 @@ erDiagram
 
 **Request**
 ```json
-{ "amount": 10000 }
+{
+  "amount": 10000
+}
 ```
 **Response `200`**
 ```json
-{ "message": "포인트 충전이 완료되었습니다.", "data": { "memberId": 1, "pointBalance": 10000 } }
+{
+  "message": "포인트 충전이 완료되었습니다.",
+  "data": {
+    "memberId": 1,
+    "pointBalance": 10000
+  }
+}
 ```
 **실패** — `400` amount 누락/0 이하 · `404` 존재하지 않는 회원
 
@@ -99,7 +118,10 @@ erDiagram
 
 **Request**
 ```json
-{ "memberId": 1, "coffeeId": 2 }
+{
+  "memberId": 1,
+  "coffeeId": 2
+}
 ```
 **Response `201`**
 ```json
