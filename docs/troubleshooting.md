@@ -19,3 +19,13 @@
 - **수정**: 풀 생성을 `Executors.newFixedThreadPool(threads)`로 변경해 배리어 카운트와 동시 실행 스레드 수를 일치시킴. (파일: `src/test/java/com/example/projectwork/domain/member/PointConcurrencyTest.java`)
 - **재검증**: `./gradlew test` → PointConcurrencyTest 포함 전체 통과(37 tests, 0 failures). 50-스레드 동시 차감에서 정확히 10건 성공·잔액 0 확인.
 - **연관**: #17, PR #18
+
+## TS-002 k6 1000 VU 동시 커넥트 시 ~70% 연결 거절 — 2026-07-14
+- **상태**: 해결(원인 규명, 부하 모델 변경으로 우회)
+- **증상**: k6 `VUS=1000, iterations=1`로 주문 부하 시 요청의 약 70%가 앱에 도달조차 못 하고 실패. 나머지만 정상 처리.
+- **재현 명령**: `k6 run -e VUS=1000 -e ITER=1 src/test/k6/order-full.js`
+- **로그 요약**: `Post http://localhost:8080/...: dial tcp 127.0.0.1:8080: connectex: No connection could be made because the target machine actively refused it.` 다수. 앱 로그엔 해당 요청 흔적 없음(도달 전 거절).
+- **원인**: 1000개 소켓을 같은 순간 개설 → 커널 listen 백로그(accept 큐) 초과로 TCP 계층에서 거절. 톰캣 `server.tomcat.accept-count`를 1000으로 올려도 Windows 루프백 백로그 한계로 동일. 애플리케이션 로직·정합성과 무관(도달한 요청은 100% 정확 처리, 원장 일치).
+- **수정**: 부하 모델을 **200 동시 워커 × 5회 = 1000 요청**(`per-vu-iterations`, `VUS=200 ITER=5`)으로 변경 → 모든 요청이 앱에 도달, 실패 0. 강한 동시성(200 in-flight)은 유지되어 row 잠금 경쟁은 그대로 실증.
+- **재검증**: `k6 run -e VUS=200 -e ITER=5 src/test/k6/order-full.js` → 1000/1000 성공, 실패율 0%, 최종 잔액 0, 주문 1000/결제합 4,000,000 정확 일치.
+- **연관**: [load-test.md](load-test.md) §5
