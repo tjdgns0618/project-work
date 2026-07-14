@@ -54,10 +54,11 @@
 - **Producer** — 결제 **커밋 이후** 주문 이벤트를 토픽으로 1건 발행. 페이로드: 주문ID · 사용자 식별값 · 메뉴ID · 결제금액 · 주문시각. (주문ID = 인기 메뉴 멱등 키)
 - **토픽(예)** — `order.completed`.
 - **비동기 · 결제 비차단** — 발행 실패가 결제 트랜잭션을 롤백하지 않는다. (결제 정합성 > 전송 성공)
-- **Consumer 2종** —
-  - **인기 메뉴 Consumer**: 이벤트를 받아 주문ID로 멱등 확인 후 Redis에 `ZINCRBY`로 카운트 적재(중복 재전달은 무시).
-  - **데이터 수집 플랫폼 Consumer**: 같은 토픽을 소비. MVP에서는 Mock consumer 또는 테스트 코드로 수신(사용자 식별값·메뉴ID·결제금액)을 검증.
-- **왜 Kafka인가** — 주문 이벤트를 단일 소스로 두면 데이터 전송과 랭킹 적재를 같은 스트림에서 분기할 수 있다. 수집 플랫폼 장애가 결제 경로에 영향을 주지 않고, Redis 유실 시에도 토픽 재소비로 재구축이 가능하다.
+- **Consumer 3종 (독립 consumer group)** — 각 소비자는 별도 group이라 같은 메시지를 독립적으로 받는다.
+  - **인기 메뉴 Consumer** (`coffee-service`): 이벤트를 받아 주문ID로 멱등 확인 후 Redis에 `ZINCRBY`로 카운트 적재(중복 재전달은 무시).
+  - **데이터 수집 플랫폼 Consumer** (`data-platform`): 같은 토픽을 소비. MVP에서는 Mock consumer 또는 테스트 코드로 수신(사용자 식별값·메뉴ID·결제금액)을 검증.
+  - **알림 Consumer** (`notification-service`): 주문 완료 알림을 발송한다. 현재는 Mock(`LoggingNotificationSender`, 로그만). `NotificationSender` 인터페이스 뒤에 실제 provider(예: KakaoTalk)를 갈아끼우는 **확장 지점**이다.
+- **왜 Kafka인가** — 주문 이벤트를 단일 소스로 두면 데이터 전송·랭킹 적재·알림을 같은 스트림에서 분기할 수 있다. **새 소비자를 독립 group으로 추가해도 발행자·기존 소비자를 수정하지 않는다**(위 알림 Consumer가 그 예). 수집 플랫폼 장애가 결제 경로에 영향을 주지 않고, Redis 유실 시에도 토픽 재소비로 재구축이 가능하다.
 
 ---
 
@@ -73,11 +74,12 @@
         │ (커밋 성공 후)
         └─ Kafka: produce → topic "order.completed"
                      │
-        ┌────────────┴─────────────┐
-        ▼                          ▼
-[인기 메뉴 Consumer]        [데이터 수집 플랫폼 Consumer]
- Redis ZINCRBY               (Mock consumer / 테스트로 수신 검증)
- popular:coffee:{today}
+        ┌────────────┼──────────────────────┐
+        ▼            ▼                       ▼
+[인기 메뉴]   [데이터 수집 플랫폼]      [알림 Consumer]
+ Redis ZINCRBY  (Mock/테스트 수신 검증)   NotificationSender.send
+ popular:{today}                          (Mock=로그, 확장:KakaoTalk)
 ```
+> 세 소비자는 독립 consumer group이라 서로 무관하게 같은 이벤트를 받는다. 새 소비자 추가 시 발행자·기존 소비자는 무변경.
 
-> 커밋 이후의 Kafka 발행과 그로부터 갈라지는 Redis 적재·플랫폼 전송은 결제 성공을 전제로 하는 후속 작업이며, 실패해도 결제는 유지된다.
+> 커밋 이후의 Kafka 발행과 그로부터 갈라지는 Redis 적재·플랫폼 전송·알림은 결제 성공을 전제로 하는 후속 작업이며, 실패해도 결제는 유지된다.
