@@ -22,11 +22,24 @@ import lombok.RequiredArgsConstructor;
 public class PopularMenuRanking {
 
 	private static final String KEY_PREFIX = "popular:coffee:";
+	private static final String DEDUP_PREFIX = "dedup:order:";
 	private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("yyyyMMdd");
 	private static final Duration DAILY_TTL = Duration.ofDays(8);
+	private static final Duration DEDUP_TTL = Duration.ofDays(8);
 	private static final Duration UNION_TTL = Duration.ofMinutes(1);
 
 	private final StringRedisTemplate redisTemplate;
+
+	/**
+	 * 주문 ID를 처음 처리하는 경우에만 true. (Redis SETNX)
+	 * Kafka at-least-once 재전달 시 같은 주문이 다시 와도 false를 반환해 중복 집계를 막는다.
+	 * dedup 키 TTL은 일자별 랭킹 키 TTL과 맞춰 함께 만료된다.
+	 */
+	public boolean markProcessed(Long orderId) {
+		Boolean first = redisTemplate.opsForValue()
+				.setIfAbsent(DEDUP_PREFIX + orderId, "1", DEDUP_TTL);
+		return Boolean.TRUE.equals(first);
+	}
 
 	/** 주문 1건을 해당 일자 랭킹에 반영한다. */
 	public void increment(Long coffeeId, LocalDate date) {

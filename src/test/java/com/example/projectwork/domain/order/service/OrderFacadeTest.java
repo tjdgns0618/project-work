@@ -79,6 +79,7 @@ class OrderFacadeTest {
 
 		ArgumentCaptor<OrderCompletedEvent> captor = ArgumentCaptor.forClass(OrderCompletedEvent.class);
 		verify(eventPublisher).publishEvent(captor.capture());
+		assertThat(captor.getValue().orderId()).isEqualTo(10L);
 		assertThat(captor.getValue().memberId()).isEqualTo(1L);
 		assertThat(captor.getValue().coffeeId()).isEqualTo(2L);
 		assertThat(captor.getValue().payAmount()).isEqualTo(4000);
