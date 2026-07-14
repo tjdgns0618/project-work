@@ -29,3 +29,17 @@
 - **수정**: 부하 모델을 **200 동시 워커 × 5회 = 1000 요청**(`per-vu-iterations`, `VUS=200 ITER=5`)으로 변경 → 모든 요청이 앱에 도달, 실패 0. 강한 동시성(200 in-flight)은 유지되어 row 잠금 경쟁은 그대로 실증.
 - **재검증**: `k6 run -e VUS=200 -e ITER=5 src/test/k6/order-full.js` → 1000/1000 성공, 실패율 0%, 최종 잔액 0, 주문 1000/결제합 4,000,000 정확 일치.
 - **연관**: [load-test.md](load-test.md) §5
+
+## TS-003 threshold 재실행 시 ~9% 연결 실패 + exit code 항상 0 오판정 — 2026-07-14
+- **상태**: 해결
+- **증상**: k6 스크립트에 thresholds를 추가하고 재실행하니 (1) `http_req_failed`가 ~9%로 떠 `rate==0` FAIL, (2) 그런데 셸 판정은 항상 `exit=0`으로 나와 PASS/FAIL을 못 가림.
+- **재현 명령**: `k6 run --quiet -e VUS=200 -e ITER=5 src/test/k6/order-full.js | grep -v warning | sed -n '/==/,/==/p'` 후 `$?` 확인.
+- **로그 요약**: `c_other` 카운터가 시나리오마다 90~95건. 앱 재기동 로그엔 `Failed to start bean 'webServerStartStop'` + `APPLICATION FAILED TO START`(8080 바인드 실패). 그런데 `curl :8080`은 200 응답.
+- **원인**: **두 가지 겹침**.
+  1. *좀비 8080*: 이전 bootRun 인스턴스가 8080을 계속 잡고 있어 새 bootRun은 포트 충돌로 기동 실패. `Get-Process java`에 인스턴스 4개 난립 → 옛 인스턴스가 서빙하며 sustained 부하에서 간헐 연결 리셋(9%). 앱 로직·정합성과 무관(정합성 대조는 그대로 통과).
+  2. *파이프 exit 마스킹*: `k6 | grep | sed`에서 `$?`는 파이프라인 **마지막 명령(sed)**의 코드라 k6가 threshold FAIL로 exit 1을 내도 항상 0으로 보였다.
+- **수정**:
+  1. 재측정 전 `Get-NetTCPConnection -LocalPort 8080`으로 리스너 PID를 찾아 **전부 종료**하고 단일 앱만 기동. 시나리오 간 쿨다운(`sleep 6`)으로 loopback TIME_WAIT 배수.
+  2. k6를 파이프 없이 실행(`k6 run ... > run.log 2>&1; ec=$?`)해 실제 exit code 캡처.
+- **재검증**: 단일 클린 앱 + 쿨다운으로 4개 시나리오 재실행 → **연결오류 0, 전 threshold PASS, k6 exit=0**. (order-full rate==0·p95 3.6s / contended 성공==100·409==900 / charge rate==0 / read p95 179ms<500)
+- **연관**: [load-test.md](load-test.md) §9, TS-002(같은 loopback 계열)

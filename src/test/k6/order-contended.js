@@ -17,9 +17,19 @@ const cOk = new Counter('c_success_201');
 const cConflict = new Counter('c_conflict_409');
 const cOther = new Counter('c_other');
 
+// 409(잔액 부족)는 이 시나리오의 정상 응답 → 실패로 집계하지 않도록 예상 상태 등록.
+// setup의 회원가입(201)·충전(200)도 통과해야 하므로 2xx 전체 + 409를 예상으로.
+http.setResponseCallback(http.expectedStatuses({ min: 200, max: 299 }, 409));
+
 export const options = {
   scenarios: {
     burst: { executor: 'per-vu-iterations', vus: VUS, iterations: ITER, maxDuration: '180s' },
+  },
+  thresholds: {
+    http_req_failed: ['rate==0'],                       // 409 예상 등록했으므로 진짜 실패(5xx 등)만 잡힘
+    http_req_duration: ['p(95)<5000'],                  // 실측 2.2s 기준 여유
+    c_success_201: [`count==${N_OK}`],                  // 원자적 UPDATE가 정확히 N_OK건만 통과
+    c_conflict_409: [`count==${VUS * ITER - N_OK}`],    // 나머지는 전부 409
   },
 };
 

@@ -20,6 +20,10 @@ export const options = {
   scenarios: {
     burst: { executor: 'per-vu-iterations', vus: VUS, iterations: ITER, maxDuration: '180s' },
   },
+  thresholds: {
+    http_req_failed: ['rate==0'],        // 전량 성공 — 실패 0건
+    http_req_duration: ['p(95)<7000'],   // 실측 3.5s의 ×2 (단일 회원 row 경쟁 최악치 여유)
+  },
 };
 
 export function setup() {

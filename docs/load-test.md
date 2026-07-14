@@ -114,3 +114,19 @@ k6 run -e VUS=200 -e ITER=5 -e N_OK=100 src/test/k6/order-contended.js
 k6 run -e VUS=200 -e ITER=5 -e AMOUNT=100 src/test/k6/charge.js
 k6 run -e VUS=200 -e ITER=5 src/test/k6/read.js
 ```
+
+> **주의(재현 함정)**: 반드시 **8080에 앱 인스턴스가 하나만** 떠 있어야 한다. 이전 bootRun이 포트를 잡은 채 남아 있으면 새 기동이 실패하고 좀비가 서빙하며 간헐 연결 실패가 난다(→ [troubleshooting.md](troubleshooting.md) TS-003). 재측정 전 `Get-NetTCPConnection -LocalPort 8080`의 PID를 정리할 것.
+
+## 9. 성능 합격 기준 (thresholds) — 재실행 가능한 게이트
+
+각 스크립트 `options.thresholds`에 합격선을 박아, k6가 위반 시 **exit code 1**로 실패한다. 즉 이 문서의 수치는 "한 번 재본 값"이 아니라 **재실행 때마다 자동 검증되는 계약**이다. 기준은 로컬 실측 p95의 약 2~3배(회귀 감지용 여유)로 잡았다.
+
+| 시나리오 | threshold | 의미 |
+|---|---|---|
+| order-full | `http_req_failed: rate==0` · `p95<7000ms` | 전량 성공 + 지연 상한 |
+| order-contended | `c_success_201: count==N_OK` · `c_conflict_409: count==(총-N_OK)` · `p95<5000ms` · `rate==0` | **정확히 N_OK건만 통과**(초과 차감 0)를 게이트로 강제. 409는 정상 응답이라 `http.setResponseCallback(expectedStatuses(2xx, 409))`로 예상 등록 |
+| charge | `http_req_failed: rate==0` · `p95<6000ms` | 전량 성공 + 지연 상한 |
+| read | `http_req_failed: rate==0` · `p95<500ms` | **조회 성능 게이트** — p95 500ms 초과 시 실패(실측 ~180ms) |
+
+- **판정 확인**: `k6 run ... ; echo $?` — 0이면 전 threshold PASS. (파이프로 감싸면 `$?`가 뒤 명령 코드가 되어 오판정하니 주의 → TS-003.)
+- 최근 통과 실행(단일 클린 앱): order-full·contended·charge·read **4/4 PASS**, 연결오류 0.
